@@ -809,11 +809,10 @@ document.getElementById('importFile').onchange = (e) => {
             added++;
           }
         });
-        saveMenu().then(() => {
-          renderDishes();
-          renderManageList();
-          showToast(`合并完成：新增 ${added} 道，跳过重复 ${skipped} 道`);
-        });
+        renderDishes();
+        renderManageList();
+        saveMenu();
+        showToast(`合并完成：新增 ${added} 道，跳过重复 ${skipped} 道`);
       } else { showToast('文件格式不对'); }
     } catch(err) { showToast('导入失败'); }
   };
