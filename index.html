@@ -388,6 +388,7 @@ async function load() {
       showToast('读菜单错误: ' + menuErr.message);
       return;
     }
+    showToast('读到: ' + JSON.stringify(menuData));
     if (menuData) {
       menu = menuData.data || [];
     } else {
