@@ -377,26 +377,37 @@ let room = localStorage.getItem('dinner_room') || '';
 
 async function load() {
   if (!room) return;
-  // 从Supabase拉菜单
-  const { data: menuData } = await supabase
-    .from('menus')
-    .select('data')
-    .eq('room', room)
-    .single();
-  if (menuData) {
-    menu = menuData.data || [];
-  } else {
-    menu = [];
+  try {
+    // 从Supabase拉菜单
+    const { data: menuData, error: menuErr } = await supabase
+      .from('menus')
+      .select('data')
+      .eq('room', room)
+      .maybeSingle();
+    if (menuErr) {
+      showToast('读菜单错误: ' + menuErr.message);
+      return;
+    }
+    if (menuData) {
+      menu = menuData.data || [];
+    } else {
+      menu = [];
+    }
+    // 从Supabase拉历史
+    const { data: historyData, error: historyErr } = await supabase
+      .from('history')
+      .select('data')
+      .eq('room', room)
+      .order('created_at', { ascending: false });
+    if (historyErr) {
+      showToast('读历史错误: ' + historyErr.message);
+    }
+    history = (historyData || []).map(h => h.data);
+    renderDishes();
+    renderManageList();
+  } catch(e) {
+    showToast('连接错误: ' + e.message);
   }
-  // 从Supabase拉历史
-  const { data: historyData } = await supabase
-    .from('history')
-    .select('data')
-    .eq('room', room)
-    .order('created_at', { ascending: false });
-  history = (historyData || []).map(h => h.data);
-  renderDishes();
-  renderManageList();
 }
 
 async function saveMenu() {
