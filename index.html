@@ -379,7 +379,7 @@ async function load() {
   if (!room) return;
   try {
     // 从Supabase拉菜单
-    const { data: menuData, error: menuErr } = await db.
+    const { data: menuData, error: menuErr } = await db
       .from('menus')
       .select('data')
       .eq('room', room)
@@ -394,7 +394,7 @@ async function load() {
       menu = [];
     }
     // 从Supabase拉历史
-    const { data: historyData, error: historyErr } = await supabase
+    const { data: historyData, error: historyErr } = await db
       .from('history')
       .select('data')
       .eq('room', room)
@@ -412,14 +412,14 @@ async function load() {
 
 async function saveMenu() {
   if (!room) return;
-  await supabase
+  await db
     .from('menus')
     .upsert({ room: room, data: menu, updated_at: new Date().toISOString() });
 }
 
 async function saveHistory() {
   if (!room) return;
-  await supabase
+  await db
     .from('history')
     .insert({ room: room, data: history[history.length - 1] });
 }
