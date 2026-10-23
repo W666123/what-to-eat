@@ -629,12 +629,21 @@ document.getElementById('importFile').onchange = (e) => {
     try {
       const data = JSON.parse(ev.target.result);
       if (Array.isArray(data)) {
-        menu = data;
+        // 合并导入：新菜加进去，重名的跳过
+        let added = 0, skipped = 0;
+        data.forEach(newDish => {
+          if (menu.find(m => m.name === newDish.name)) {
+            skipped++;
+          } else {
+            menu.push(newDish);
+            added++;
+          }
+        });
         saveMenu();
         renderCats();
         renderDishes();
         renderManageList();
-        showToast('导入成功，共' + data.length + '道菜');
+        showToast(`合并完成：新增 ${added} 道，跳过重复 ${skipped} 道`);
       } else { showToast('文件格式不对'); }
     } catch(err) { showToast('导入失败'); }
   };
