@@ -12,7 +12,7 @@
 <script>
 const SUPABASE_URL = 'https://mkoeninwppqqjbtjwd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_n24BOiYvRLOgu9Eke6mN5w_mGY-JJua';
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 </script>
 <style>
   :root {
@@ -379,7 +379,7 @@ async function load() {
   if (!room) return;
   try {
     // 从Supabase拉菜单
-    const { data: menuData, error: menuErr } = await supabase
+    const { data: menuData, error: menuErr } = await db.
       .from('menus')
       .select('data')
       .eq('room', room)
