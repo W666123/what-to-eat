@@ -243,7 +243,6 @@
   <!-- 点餐页 -->
   <div id="page-order">
     <div class="main">
-      <div class="cat-sidebar" id="catSidebar"></div>
       <div class="dish-area" id="dishArea"></div>
     </div>
 
@@ -376,19 +375,6 @@ document.querySelectorAll('.mode-tab').forEach(tab => {
   };
 });
 
-// 渲染左侧分类
-function renderCats() {
-  const box = document.getElementById('catSidebar');
-  box.innerHTML = '';
-  CATS.forEach((cat, i) => {
-    const el = document.createElement('div');
-    el.className = 'cat-item' + (i === activeCat ? ' active' : '');
-    el.textContent = cat;
-    el.onclick = () => { activeCat = i; renderCats(); renderDishes(); };
-    box.appendChild(el);
-  });
-}
-
 // 统计每道菜历史点过多少次
 function getDishCount() {
   const counts = {};
@@ -400,41 +386,49 @@ function getDishCount() {
   return counts;
 }
 
-// 渲染右侧菜品
+// 渲染菜品（所有分类按顺序列出来）
 function renderDishes() {
   const box = document.getElementById('dishArea');
-  const cat = CATS[activeCat];
-  const items = menu.map((m, i) => ({...m, idx: i})).filter(m => m.cat === cat);
+  const counts = getDishCount();
 
-  if (items.length === 0) {
-    box.innerHTML = '<div class="empty">这个分类还没有菜<br>去「管理菜单」页添加</div>';
+  if (menu.length === 0) {
+    box.innerHTML = '<div class="empty">还没有菜品<br>去「管理菜单」页添加</div>';
     return;
   }
 
-  box.innerHTML = `<div class="cat-title">${cat} · ${items.length} 道</div>`;
-  const counts = getDishCount();
-  items.forEach(item => {
-    const qty = cart[item.idx] || 0;
-    const count = counts[item.name] || 0;
-    const card = document.createElement('div');
-    card.className = 'dish-card';
-    const imgHtml = item.img
-      ? `<div class="dish-img"><img src="${item.img}"></div>`
-      : `<div class="dish-img">🍽️</div>`;
-    card.innerHTML = `
-      ${imgHtml}
-      <div class="dish-info">
-        <div class="dish-name">${item.name}</div>
-        <div class="dish-price">${item.price}<small> ${item.unit || ''}</small></div>
-        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">已点过 ${count} 次</div>
-      </div>
-      <div class="cart-controls">
-        <span class="qty-badge ${qty > 0 ? 'show' : ''}">${qty}</span>
-        <button class="btn-minus" data-idx="${item.idx}" style="${qty > 0 ? '' : 'display:none'}">−</button>
-        <button class="btn-plus" data-idx="${item.idx}">+</button>
-      </div>
-    `;
-    box.appendChild(card);
+  box.innerHTML = '';
+  CATS.forEach(cat => {
+    const items = menu.map((m, i) => ({...m, idx: i})).filter(m => m.cat === cat);
+    if (items.length === 0) return;
+
+    const title = document.createElement('div');
+    title.className = 'cat-title';
+    title.textContent = `${cat} · ${items.length} 道`;
+    box.appendChild(title);
+
+    items.forEach(item => {
+      const qty = cart[item.idx] || 0;
+      const count = counts[item.name] || 0;
+      const card = document.createElement('div');
+      card.className = 'dish-card';
+      const imgHtml = item.img
+        ? `<div class="dish-img"><img src="${item.img}"></div>`
+        : `<div class="dish-img">🍽️</div>`;
+      card.innerHTML = `
+        ${imgHtml}
+        <div class="dish-info">
+          <div class="dish-name">${item.name}</div>
+          <div class="dish-price">${item.price}<small> ${item.unit || ''}</small></div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">已点过 ${count} 次</div>
+        </div>
+        <div class="cart-controls">
+          <span class="qty-badge ${qty > 0 ? 'show' : ''}">${qty}</span>
+          <button class="btn-minus" data-idx="${item.idx}" style="${qty > 0 ? '' : 'display:none'}">−</button>
+          <button class="btn-plus" data-idx="${item.idx}">+</button>
+        </div>
+      `;
+      box.appendChild(card);
+    });
   });
 
   box.querySelectorAll('.btn-plus').forEach(btn => {
@@ -567,7 +561,6 @@ document.getElementById('saveAdd').onclick = () => {
   document.getElementById('newUnit').value = '';
   document.getElementById('imgUpload').innerHTML = '📷';
   newImgData = '';
-  renderCats();
   renderDishes();
   renderManageList();
   showToast('已添加：' + name);
@@ -600,7 +593,6 @@ function renderManageList() {
       const name = menu[i].name;
       menu.splice(i, 1);
       saveMenu();
-      renderCats();
       renderDishes();
       renderManageList();
       showToast('已删除：' + name);
@@ -640,7 +632,6 @@ document.getElementById('importFile').onchange = (e) => {
           }
         });
         saveMenu();
-        renderCats();
         renderDishes();
         renderManageList();
         showToast(`合并完成：新增 ${added} 道，跳过重复 ${skipped} 道`);
@@ -683,7 +674,6 @@ function renderHistory() {
 
 // 初始化
 load();
-renderCats();
 renderDishes();
 renderManageList();
 updateCart();
