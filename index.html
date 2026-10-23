@@ -810,6 +810,8 @@ document.getElementById('importFile').onchange = (e) => {
           }
         });
         saveMenu().then(() => {
+          renderDishes();
+          renderManageList();
           showToast(`合并完成：新增 ${added} 道，跳过重复 ${skipped} 道`);
         });
       } else { showToast('文件格式不对'); }
