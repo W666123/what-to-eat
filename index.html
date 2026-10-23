@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>宝宝想吃啥</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
 <style>
@@ -553,11 +556,20 @@ document.getElementById('doConfirm').onclick = () => {
   const today = new Date().toISOString().slice(0, 10);
   history.push({ date: today, items, unitTotals });
   saveHistory();
+
+  // 生成分享链接
+  const orderStr = encodeURIComponent(JSON.stringify(items.map(it => ({ n: it.name, q: it.qty }))));
+  const shareUrl = location.origin + location.pathname + '?order=' + orderStr;
+  navigator.clipboard.writeText(shareUrl).then(() => {
+    showToast('分享链接已复制，发给女朋友吧 💕');
+  }).catch(() => {
+    showToast('已记录 💕');
+  });
+
   cart = {};
   document.getElementById('confirmModal').classList.remove('show');
   renderDishes();
   updateCart();
-  showToast('已记录 💕');
 };
 
 document.getElementById('cartIcon').onclick = () => {
@@ -710,6 +722,25 @@ load();
 renderDishes();
 renderManageList();
 updateCart();
+
+// 检查是否是分享链接
+const params = new URLSearchParams(location.search);
+if (params.has('order')) {
+  try {
+    const order = JSON.parse(decodeURIComponent(params.get('order')));
+    if (order.length > 0) {
+      const list = document.getElementById('confirmList');
+      list.innerHTML = '';
+      order.forEach(it => {
+        const row = document.createElement('div');
+        row.className = 'confirm-item';
+        row.innerHTML = `<span class="name">${it.n} × ${it.q}</span>`;
+        list.appendChild(row);
+      });
+      document.getElementById('confirmModal').classList.add('show');
+    }
+  } catch(e) {}
+}
 </script>
 </body>
 </html>
