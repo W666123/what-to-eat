@@ -46,11 +46,12 @@
   .mode-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
 
   /* 点餐页主体 */
-  .main { display: flex; }
+  .main::after { content: ''; display: table; clear: both; }
 
   /* 左边分类 */
   .cat-sidebar {
-    width: 80px; background: #FFF0F4; flex-shrink: 0;
+    width: 80px; background: #FFF0F4;
+    position: fixed; left: 0; top: 110px; bottom: 80px; overflow-y: auto;
   }
   .cat-item {
     padding: 18px 8px; text-align: center; font-size: 14px; color: var(--text-secondary);
@@ -65,7 +66,7 @@
   }
 
   /* 右边菜品列表 */
-  .dish-area { flex: 1; padding: 12px; }
+  .dish-area { margin-left: 80px; padding: 12px; }
   .cat-title { font-size: 13px; color: var(--text-secondary); margin: 8px 0 12px 4px; }
   .dish-card {
     background: var(--card); border-radius: 20px; padding: 14px;
@@ -705,32 +706,6 @@ load();
 renderDishes();
 renderManageList();
 updateCart();
-
-// 滚动联动：滑到哪个分类，左边标签自动高亮
-let scrollTimer = null;
-window.addEventListener('scroll', () => {
-  if (scrollTimer) clearTimeout(scrollTimer);
-  scrollTimer = setTimeout(() => {
-    const catTitles = document.querySelectorAll('.cat-title');
-    if (catTitles.length === 0) return;
-    const scrollPos = window.pageYOffset + 100; // 偏移量，考虑顶部栏高度
-    let currentCat = 0;
-    catTitles.forEach((title, i) => {
-      if (title.offsetTop <= scrollPos) {
-        currentCat = i;
-      }
-    });
-    // 找到这个分类对应的索引
-    const catNames = [];
-    catTitles.forEach(t => catNames.push(t.textContent.split(' · ')[0]));
-    const catName = catNames[currentCat];
-    const catIndex = CATS.indexOf(catName);
-    if (catIndex >= 0 && catIndex !== activeCat) {
-      activeCat = catIndex;
-      renderCats();
-    }
-  }, 50);
-});
 </script>
 </body>
 </html>
