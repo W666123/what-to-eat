@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>宝宝想吃啥</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
+<style>
+  :root {
+    --primary: #FF6B9D;
+    --primary-light: #FFE5EE;
+    --bg: #FFF5F7;
+    --card: #FFFFFF;
+    --text: #4A3340;
+    --text-secondary: #B89AA5;
+    --border: #FFE0E9;
+    --green: #7ED957;
+    --radius: 16px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); height: 100vh; overflow: hidden;
+  }
+  .app { max-width: 480px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; }
+
+  /* 顶部 */
+  .top-bar {
+    background: var(--card); padding: 14px 16px; display: flex; align-items: center;
+    justify-content: space-between; border-bottom: 1px solid var(--border);
+  }
+  .top-bar h1 { font-size: 18px; font-weight: 600; }
+  .top-bar button {
+    background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer;
+  }
+
+  /* 模式切换tab */
+  .mode-tabs {
+    display: flex; background: var(--card); border-bottom: 1px solid var(--border);
+  }
+  .mode-tab {
+    flex: 1; padding: 12px; text-align: center; font-size: 15px; color: var(--text-secondary);
+    cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s;
+  }
+  .mode-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+
+  /* 点餐页主体 */
+  .main { flex: 1; display: flex; overflow: hidden; }
+
+  /* 左边分类 */
+  .cat-sidebar {
+    width: 80px; background: #FFF0F4; overflow-y: auto; flex-shrink: 0;
+  }
+  .cat-item {
+    padding: 18px 8px; text-align: center; font-size: 14px; color: var(--text-secondary);
+    cursor: pointer; position: relative; transition: all .15s;
+  }
+  .cat-item.active {
+    background: var(--card); color: var(--primary); font-weight: 600;
+  }
+  .cat-item.active::before {
+    content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    width: 4px; height: 24px; background: var(--primary); border-radius: 0 4px 4px 0;
+  }
+
+  /* 右边菜品列表 */
+  .dish-area { flex: 1; overflow-y: auto; padding: 12px; }
+  .cat-title { font-size: 13px; color: var(--text-secondary); margin: 8px 0 12px 4px; }
+  .dish-card {
+    background: var(--card); border-radius: 20px; padding: 14px;
+    margin-bottom: 12px; display: flex; gap: 12px; align-items: center;
+    box-shadow: 0 2px 8px rgba(255,107,157,.08);
+  }
+  .dish-img {
+    width: 68px; height: 68px; border-radius: 16px; background: var(--primary-light);
+    display: flex; align-items: center; justify-content: center; font-size: 28px;
+    flex-shrink: 0; overflow: hidden;
+  }
+  .dish-img img { width: 100%; height: 100%; object-fit: cover; }
+  .dish-info { flex: 1; min-width: 0; }
+  .dish-name { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .dish-price { font-size: 15px; color: var(--primary); font-weight: 600; }
+  .dish-price small { font-size: 11px; color: var(--text-secondary); font-weight: 400; }
+
+  /* 加购按钮组 */
+  .cart-controls { display: flex; align-items: center; gap: 8px; }
+  .qty-badge {
+    min-width: 20px; text-align: center; font-size: 14px; font-weight: 600; display: none;
+  }
+  .qty-badge.show { display: inline; }
+  .btn-plus, .btn-minus {
+    width: 28px; height: 28px; border-radius: 50%; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+    font-weight: 600; transition: all .1s;
+  }
+  .btn-plus { background: var(--primary); color: white; box-shadow: 0 2px 6px rgba(255,107,157,.3); }
+  .btn-plus:active { transform: scale(.9); }
+  .btn-minus { background: var(--primary-light); color: var(--primary); border: none; }
+  .btn-minus:active { transform: scale(.9); }
+
+  /* 底部购物车栏 */
+  .cart-bar {
+    background: #4A3340; color: white; padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .cart-icon {
+    width: 48px; height: 48px; border-radius: 50%; background: var(--primary);
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+    position: relative; cursor: pointer; flex-shrink: 0; margin-top: -24px;
+    box-shadow: 0 4px 12px rgba(255,107,157,.4);
+  }
+  .cart-badge {
+    position: absolute; top: -2px; right: -2px; background: #FF3B30; color: white;
+    font-size: 10px; min-width: 18px; height: 18px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center; padding: 0 4px;
+  }
+  .cart-total { flex: 1; }
+  .cart-total .price { font-size: 16px; font-weight: 700; }
+  .cart-total .hint { font-size: 11px; color: #999; }
+  .btn-submit {
+    background: var(--primary); color: white; border: none; border-radius: 999px;
+    padding: 12px 24px; font-size: 15px; font-weight: 600; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(255,107,157,.3);
+  }
+  .btn-submit:disabled { background: #555; cursor: not-allowed; }
+
+  /* 管理页 */
+  .manage-page { flex: 1; overflow-y: auto; padding: 16px; display: none; }
+  .manage-page.active { display: block; }
+  .manage-card {
+    background: var(--card); border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+  }
+  .manage-card h3 { font-size: 15px; margin-bottom: 12px; }
+  .form-row { margin-bottom: 12px; }
+  .form-row label { font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 4px; }
+  .form-row input, .form-row select {
+    width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 15px; outline: none;
+  }
+  .price-row { display: flex; gap: 8px; }
+  .price-row input:first-child { flex: 1; }
+  .price-row input:last-child { flex: 1; }
+
+  /* 图片上传 */
+  .img-upload {
+    width: 80px; height: 80px; border: 2px dashed var(--border); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    font-size: 24px; color: var(--text-secondary); overflow: hidden;
+  }
+  .img-upload img { width: 100%; height: 100%; object-fit: cover; }
+
+  .btn-save {
+    width: 100%; padding: 12px; background: var(--primary); color: white;
+    border: none; border-radius: 8px; font-size: 15px; cursor: pointer; margin-top: 8px;
+  }
+
+  /* 管理页菜品列表 */
+  .manage-dish {
+    display: flex; align-items: center; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .manage-dish:last-child { border-bottom: none; }
+  .manage-dish .img {
+    width: 48px; height: 48px; border-radius: 6px; background: var(--primary-light);
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+    overflow: hidden; flex-shrink: 0;
+  }
+  .manage-dish .img img { width: 100%; height: 100%; object-fit: cover; }
+  .manage-dish .info { flex: 1; }
+  .manage-dish .name { font-size: 14px; font-weight: 500; }
+  .manage-dish .price { font-size: 12px; color: var(--primary); }
+  .manage-dish .del {
+    color: #DDD; font-size: 18px; cursor: pointer; padding: 4px 8px;
+  }
+  .manage-dish .del:hover { color: var(--primary); }
+
+  /* 历史记录抽屉 */
+  .history-drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 320px; max-width: 85vw;
+    background: white; z-index: 300; transform: translateX(100%); transition: transform .2s;
+    overflow-y: auto; padding: 16px;
+  }
+  .history-drawer.show { transform: translateX(0); }
+  .history-drawer h3 { font-size: 16px; margin-bottom: 16px; }
+  .history-item { padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .history-item .date { font-size: 12px; color: var(--text-secondary); }
+  .history-item .dishes { font-size: 14px; margin-top: 4px; }
+  .history-item .total { font-size: 12px; color: var(--primary); margin-top: 2px; }
+
+  .toast {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    background: rgba(0,0,0,.75); color: white; padding: 10px 20px; border-radius: 8px;
+    font-size: 14px; opacity: 0; transition: opacity .2s; z-index: 999; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .empty { text-align: center; padding: 40px 20px; color: var(--text-secondary); font-size: 14px; }
+
+  .page-hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 顶部栏 -->
+  <div class="top-bar">
+    <h1>宝宝想吃啥 💕</h1>
+    <button id="historyBtn">记录</button>
+  </div>
+
+  <!-- 模式切换 -->
+  <div class="mode-tabs">
+    <div class="mode-tab active" data-mode="order">点餐</div>
+    <div class="mode-tab" data-mode="manage">管理菜单</div>
+  </div>
+
+  <!-- 点餐页 -->
+  <div id="page-order">
+    <div class="main">
+      <div class="cat-sidebar" id="catSidebar"></div>
+      <div class="dish-area" id="dishArea"></div>
+    </div>
+
+    <div class="cart-bar">
+      <div class="cart-icon" id="cartIcon">🛒
+        <span class="cart-badge" id="cartBadge" style="display:none">0</span>
+      </div>
+      <div class="cart-total">
+        <div class="price" id="cartTotal">0</div>
+        <div class="hint" id="cartHint">未选购菜品</div>
+      </div>
+      <button class="btn-submit" id="submitBtn" disabled>点好了</button>
+    </div>
+  </div>
+
+  <!-- 管理页 -->
+  <div id="page-manage" class="manage-page">
+    <div class="manage-card">
+      <h3>加新菜</h3>
+      <div class="form-row">
+        <label>菜品图片</label>
+        <div class="img-upload" id="imgUpload">📷</div>
+        <input type="file" id="imgFile" accept="image/*" style="display:none">
+      </div>
+      <div class="form-row">
+        <label>菜名</label>
+        <input type="text" id="newName" placeholder="比如：西红柿炒鸡蛋">
+      </div>
+      <div class="form-row">
+        <label>价格 + 单位</label>
+        <div class="price-row">
+          <input type="number" id="newPrice" placeholder="0" min="0">
+          <input type="text" id="newUnit" placeholder="单位，比如：元/赞">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>分类</label>
+        <select id="newCat">
+          <option>荤菜</option><option>素菜</option><option>汤</option><option>主食</option><option>其他</option>
+        </select>
+      </div>
+      <button class="btn-save" id="saveAdd">添加菜品</button>
+    </div>
+
+    <div class="manage-card">
+      <h3>已有菜品（点 × 删除）</h3>
+      <div id="manageList"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn-save" id="exportMenu" style="background:#F0F0F0;color:var(--text);">导出菜单</button>
+        <button class="btn-save" id="importMenu" style="background:#F0F0F0;color:var(--text);">导入菜单</button>
+        <input type="file" id="importFile" accept=".json" style="display:none">
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 历史记录抽屉 -->
+<div class="history-drawer" id="historyDrawer">
+  <h3>历史记录</h3>
+  <div id="historyList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const MENU_KEY = 'dinner_menu_v3';
+const HISTORY_KEY = 'dinner_history_v3';
+const CATS = ['荤菜', '素菜', '汤', '主食', '其他'];
+
+let menu = [];       // {name, price, unit, cat, img(base64)}
+let history = [];    // {date, items: [{name, qty, unit, price}], unitTotals}
+let cart = {};       // {menuIndex: qty}
+let activeCat = 0;
+let newImgData = ''; // 新加菜的图片base64
+
+function load() {
+  try { menu = JSON.parse(localStorage.getItem(MENU_KEY)) || []; } catch(e) { menu = []; }
+  try { history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch(e) { history = []; }
+}
+function saveMenu() { localStorage.setItem(MENU_KEY, JSON.stringify(menu)); }
+function saveHistory() { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+// 图片压缩
+function compressImage(file, cb) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxW = 200;
+      const scale = Math.min(1, maxW / img.width);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      cb(canvas.toDataURL('image/jpeg', 0.7));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// 模式切换
+document.querySelectorAll('.mode-tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const mode = tab.dataset.mode;
+    document.getElementById('page-order').style.display = mode === 'order' ? '' : 'none';
+    document.getElementById('page-manage').style.display = mode === 'manage' ? 'block' : 'none';
+  };
+});
+
+// 渲染左侧分类
+function renderCats() {
+  const box = document.getElementById('catSidebar');
+  box.innerHTML = '';
+  CATS.forEach((cat, i) => {
+    const el = document.createElement('div');
+    el.className = 'cat-item' + (i === activeCat ? ' active' : '');
+    el.textContent = cat;
+    el.onclick = () => { activeCat = i; renderCats(); renderDishes(); };
+    box.appendChild(el);
+  });
+}
+
+// 渲染右侧菜品
+function renderDishes() {
+  const box = document.getElementById('dishArea');
+  const cat = CATS[activeCat];
+  const items = menu.map((m, i) => ({...m, idx: i})).filter(m => m.cat === cat);
+
+  if (items.length === 0) {
+    box.innerHTML = '<div class="empty">这个分类还没有菜<br>去「管理菜单」页添加</div>';
+    return;
+  }
+
+  box.innerHTML = `<div class="cat-title">${cat} · ${items.length} 道</div>`;
+  items.forEach(item => {
+    const qty = cart[item.idx] || 0;
+    const card = document.createElement('div');
+    card.className = 'dish-card';
+    const imgHtml = item.img
+      ? `<div class="dish-img"><img src="${item.img}"></div>`
+      : `<div class="dish-img">🍽️</div>`;
+    card.innerHTML = `
+      ${imgHtml}
+      <div class="dish-info">
+        <div class="dish-name">${item.name}</div>
+        <div class="dish-price">${item.price}<small> ${item.unit || ''}</small></div>
+      </div>
+      <div class="cart-controls">
+        <span class="qty-badge ${qty > 0 ? 'show' : ''}">${qty}</span>
+        <button class="btn-minus" data-idx="${item.idx}" style="${qty > 0 ? '' : 'display:none'}">−</button>
+        <button class="btn-plus" data-idx="${item.idx}">+</button>
+      </div>
+    `;
+    box.appendChild(card);
+  });
+
+  box.querySelectorAll('.btn-plus').forEach(btn => {
+    btn.onclick = () => {
+      const i = parseInt(btn.dataset.idx);
+      cart[i] = (cart[i] || 0) + 1;
+      renderDishes();
+      updateCart();
+    };
+  });
+  box.querySelectorAll('.btn-minus').forEach(btn => {
+    btn.onclick = () => {
+      const i = parseInt(btn.dataset.idx);
+      cart[i] = (cart[i] || 0) - 1;
+      if (cart[i] <= 0) delete cart[i];
+      renderDishes();
+      updateCart();
+    };
+  });
+}
+
+// 更新购物车栏
+function updateCart() {
+  let count = 0;
+  const unitTotals = {};
+  Object.entries(cart).forEach(([i, qty]) => {
+    count += qty;
+    const u = menu[i].unit || '';
+    unitTotals[u] = (unitTotals[u] || 0) + menu[i].price * qty;
+  });
+  const badge = document.getElementById('cartBadge');
+  if (count > 0) { badge.style.display = 'flex'; badge.textContent = count; }
+  else badge.style.display = 'none';
+
+  const totalStr = Object.entries(unitTotals).map(([u, v]) => `${v}${u}`).join(' + ');
+  document.getElementById('cartTotal').textContent = totalStr || '0';
+  const hint = document.getElementById('cartHint');
+  const submit = document.getElementById('submitBtn');
+  if (count === 0) {
+    hint.textContent = '未选购菜品';
+    submit.disabled = true;
+  } else {
+    hint.textContent = `共 ${count} 道菜`;
+    submit.disabled = false;
+  }
+}
+
+// 提交订单
+document.getElementById('submitBtn').onclick = () => {
+  const items = [];
+  const unitTotals = {};
+  Object.entries(cart).forEach(([i, qty]) => {
+    items.push({ name: menu[i].name, qty });
+    const u = menu[i].unit || '';
+    unitTotals[u] = (unitTotals[u] || 0) + menu[i].price * qty;
+  });
+  const today = new Date().toISOString().slice(0, 10);
+  history.push({ date: today, items, unitTotals });
+  saveHistory();
+  cart = {};
+  renderDishes();
+  updateCart();
+  showToast('已记录');
+};
+
+document.getElementById('cartIcon').onclick = () => {
+  const count = Object.values(cart).reduce((a, b) => a + b, 0);
+  if (count === 0) showToast('购物车是空的');
+  else showToast(`已选 ${count} 道菜`);
+};
+
+// 图片上传
+document.getElementById('imgUpload').onclick = () => document.getElementById('imgFile').click();
+document.getElementById('imgFile').onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  compressImage(file, (base64) => {
+    newImgData = base64;
+    document.getElementById('imgUpload').innerHTML = `<img src="${base64}">`;
+  });
+  e.target.value = '';
+};
+
+// 加菜
+document.getElementById('saveAdd').onclick = () => {
+  const name = document.getElementById('newName').value.trim();
+  const price = parseFloat(document.getElementById('newPrice').value);
+  const unit = document.getElementById('newUnit').value.trim();
+  const cat = document.getElementById('newCat').value;
+  if (!name) { showToast('输入菜名'); return; }
+  if (isNaN(price)) { showToast('输入价格'); return; }
+  if (menu.find(m => m.name === name)) { showToast('已经有了'); return; }
+  menu.push({ name, price, unit, cat, img: newImgData });
+  saveMenu();
+  document.getElementById('newName').value = '';
+  document.getElementById('newPrice').value = '';
+  document.getElementById('newUnit').value = '';
+  document.getElementById('imgUpload').innerHTML = '📷';
+  newImgData = '';
+  renderCats();
+  renderDishes();
+  renderManageList();
+  showToast('已添加：' + name);
+};
+
+// 管理页菜品列表
+function renderManageList() {
+  const box = document.getElementById('manageList');
+  if (menu.length === 0) { box.innerHTML = '<div class="empty">还没有菜品</div>'; return; }
+  box.innerHTML = '';
+  menu.forEach((d, i) => {
+    const row = document.createElement('div');
+    row.className = 'manage-dish';
+    const imgHtml = d.img
+      ? `<div class="img"><img src="${d.img}"></div>`
+      : `<div class="img">🍽️</div>`;
+    row.innerHTML = `
+      ${imgHtml}
+      <div class="info">
+        <div class="name">${d.name}</div>
+        <div class="price">${d.price}${d.unit || ''} · ${d.cat}</div>
+      </div>
+      <span class="del" data-i="${i}">×</span>
+    `;
+    box.appendChild(row);
+  });
+  box.querySelectorAll('.del').forEach(el => {
+    el.onclick = () => {
+      const i = parseInt(el.dataset.i);
+      const name = menu[i].name;
+      menu.splice(i, 1);
+      saveMenu();
+      renderCats();
+      renderDishes();
+      renderManageList();
+      showToast('已删除：' + name);
+    };
+  });
+}
+
+// 导出菜单
+document.getElementById('exportMenu').onclick = () => {
+  const blob = new Blob([JSON.stringify(menu, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '菜单.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已导出菜单');
+};
+
+// 导入菜单
+document.getElementById('importMenu').onclick = () => document.getElementById('importFile').click();
+document.getElementById('importFile').onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (Array.isArray(data)) {
+        menu = data;
+        saveMenu();
+        renderCats();
+        renderDishes();
+        renderManageList();
+        showToast('导入成功，共' + data.length + '道菜');
+      } else { showToast('文件格式不对'); }
+    } catch(err) { showToast('导入失败'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+};
+
+// 历史记录
+document.getElementById('historyBtn').onclick = () => {
+  renderHistory();
+  document.getElementById('historyDrawer').classList.add('show');
+};
+document.getElementById('historyDrawer').onclick = (e) => {
+  if (e.target === document.getElementById('historyDrawer')) {
+    e.currentTarget.classList.remove('show');
+  }
+};
+function renderHistory() {
+  const box = document.getElementById('historyList');
+  if (history.length === 0) { box.innerHTML = '<div class="empty">还没有记录</div>'; return; }
+  const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date));
+  box.innerHTML = '';
+  sorted.forEach(h => {
+    const row = document.createElement('div');
+    row.className = 'history-item';
+    const totalStr = h.unitTotals
+      ? Object.entries(h.unitTotals).map(([u, v]) => `${v}${u}`).join(' + ')
+      : '';
+    row.innerHTML = `
+      <div class="date">${h.date}</div>
+      <div class="dishes">${h.items.map(i => i.name + (i.qty > 1 ? '×' + i.qty : '')).join('、')}</div>
+      <div class="total">${totalStr}</div>
+    `;
+    box.appendChild(row);
+  });
+}
+
+// 初始化
+load();
+renderCats();
+renderDishes();
+renderManageList();
+updateCart();
+</script>
+</body>
+</html>
