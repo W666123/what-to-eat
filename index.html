@@ -20,9 +20,10 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-    background: var(--bg); color: var(--text); height: 100vh; overflow: hidden;
+    background: var(--bg); color: var(--text);
+    padding-bottom: 80px;
   }
-  .app { max-width: 480px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; }
+  .app { max-width: 480px; margin: 0 auto; }
 
   /* 顶部 */
   .top-bar {
@@ -45,11 +46,12 @@
   .mode-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
 
   /* 点餐页主体 */
-  .main { flex: 1; display: flex; overflow: hidden; }
+  .main { display: flex; }
 
   /* 左边分类 */
   .cat-sidebar {
-    width: 80px; background: #FFF0F4; overflow-y: auto; flex-shrink: 0;
+    width: 80px; background: #FFF0F4; flex-shrink: 0; position: sticky; top: 60px;
+    max-height: calc(100vh - 140px); overflow-y: auto;
   }
   .cat-item {
     padding: 18px 8px; text-align: center; font-size: 14px; color: var(--text-secondary);
@@ -64,7 +66,7 @@
   }
 
   /* 右边菜品列表 */
-  .dish-area { flex: 1; overflow-y: auto; padding: 12px; }
+  .dish-area { flex: 1; padding: 12px; }
   .cat-title { font-size: 13px; color: var(--text-secondary); margin: 8px 0 12px 4px; }
   .dish-card {
     background: var(--card); border-radius: 20px; padding: 14px;
@@ -102,6 +104,8 @@
   .cart-bar {
     background: #4A3340; color: white; padding: 12px 16px;
     display: flex; align-items: center; gap: 12px;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    max-width: 480px; margin: 0 auto;
   }
   .cart-icon {
     width: 48px; height: 48px; border-radius: 50%; background: var(--primary);
@@ -243,6 +247,7 @@
   <!-- 点餐页 -->
   <div id="page-order">
     <div class="main">
+      <div class="cat-sidebar" id="catSidebar"></div>
       <div class="dish-area" id="dishArea"></div>
     </div>
 
@@ -375,6 +380,28 @@ document.querySelectorAll('.mode-tab').forEach(tab => {
   };
 });
 
+// 渲染左侧分类导航
+function renderCats() {
+  const box = document.getElementById('catSidebar');
+  box.innerHTML = '';
+  CATS.forEach((cat, i) => {
+    const el = document.createElement('div');
+    el.className = 'cat-item' + (i === activeCat ? ' active' : '');
+    el.textContent = cat;
+    el.onclick = () => {
+      activeCat = i;
+      renderCats();
+      // 页面滚动到对应分类
+      const target = document.getElementById('cat-' + i);
+      if (target) {
+        const top = target.getBoundingClientRect().top + window.pageYOffset - 70;
+        window.scrollTo({ top: top, behavior: 'smooth' });
+      }
+    };
+    box.appendChild(el);
+  });
+}
+
 // 统计每道菜历史点过多少次
 function getDishCount() {
   const counts = {};
@@ -388,6 +415,7 @@ function getDishCount() {
 
 // 渲染菜品（所有分类按顺序列出来）
 function renderDishes() {
+  renderCats();
   const box = document.getElementById('dishArea');
   const counts = getDishCount();
 
@@ -403,6 +431,7 @@ function renderDishes() {
 
     const title = document.createElement('div');
     title.className = 'cat-title';
+    title.id = 'cat-' + CATS.indexOf(cat);
     title.textContent = `${cat} · ${items.length} 道`;
     box.appendChild(title);
 
@@ -677,6 +706,32 @@ load();
 renderDishes();
 renderManageList();
 updateCart();
+
+// 滚动联动：滑到哪个分类，左边标签自动高亮
+let scrollTimer = null;
+window.addEventListener('scroll', () => {
+  if (scrollTimer) clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(() => {
+    const catTitles = document.querySelectorAll('.cat-title');
+    if (catTitles.length === 0) return;
+    const scrollPos = window.pageYOffset + 100; // 偏移量，考虑顶部栏高度
+    let currentCat = 0;
+    catTitles.forEach((title, i) => {
+      if (title.offsetTop <= scrollPos) {
+        currentCat = i;
+      }
+    });
+    // 找到这个分类对应的索引
+    const catNames = [];
+    catTitles.forEach(t => catNames.push(t.textContent.split(' · ')[0]));
+    const catName = catNames[currentCat];
+    const catIndex = CATS.indexOf(catName);
+    if (catIndex >= 0 && catIndex !== activeCat) {
+      activeCat = catIndex;
+      renderCats();
+    }
+  }, 50);
+});
 </script>
 </body>
 </html>
