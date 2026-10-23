@@ -8,12 +8,6 @@
 <meta http-equiv="Expires" content="0">
 <title>宝宝想吃啥</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
-<script src="https://fastly.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-const SUPABASE_URL = 'https://mkoeninwppqqjbtjwd.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_n24BOiYvRLOgu9Eke6mN5w_mGY-JJua';
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-</script>
 <style>
   :root {
     --primary: #FF6B9D;
@@ -243,25 +237,12 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 </style>
 </head>
 <body>
-<!-- 房间号输入弹窗 -->
-<div class="modal-mask show" id="roomModal">
-  <div class="modal">
-    <h3>输入房间号</h3>
-    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">和宝宝用同一个房间号，菜单就是同步的</p>
-    <input type="text" id="roomInput" placeholder="比如: abc123" style="width:100%;padding:12px;border:2px solid var(--primary-light);border-radius:12px;font-size:16px;margin-bottom:16px;box-sizing:border-box;">
-    <button class="btn-save" id="roomEnter" style="width:100%;padding:12px;border:none;border-radius:12px;font-size:16px;">进入</button>
-  </div>
-</div>
-
 <div class="app">
 
   <!-- 顶部栏 -->
   <div class="top-bar">
     <h1>宝宝想吃啥 💕</h1>
-    <div style="display:flex;gap:12px;">
-      <button id="roomBtn">切换房间</button>
-      <button id="historyBtn">记录</button>
-    </div>
+    <button id="historyBtn">记录</button>
   </div>
 
   <!-- 模式切换 -->
@@ -375,55 +356,12 @@ let activeCat = 0;
 let newImgData = ''; // 新加菜的图片base64
 let room = localStorage.getItem('dinner_room') || '';
 
-async function load() {
-  if (!room) return;
-  try {
-    // 从Supabase拉菜单
-    const { data: menuData, error: menuErr } = await db
-      .from('menus')
-      .select('data')
-      .eq('room', room)
-      .maybeSingle();
-    if (menuErr) {
-      showToast('读菜单错误: ' + menuErr.message);
-      return;
-    }
-    showToast('读到: ' + JSON.stringify(menuData));
-    if (menuData) {
-      menu = menuData.data || [];
-    } else {
-      menu = [];
-    }
-    // 从Supabase拉历史
-    const { data: historyData, error: historyErr } = await db
-      .from('history')
-      .select('data')
-      .eq('room', room)
-      .order('created_at', { ascending: false });
-    if (historyErr) {
-      showToast('读历史错误: ' + historyErr.message);
-    }
-    history = (historyData || []).map(h => h.data);
-    renderDishes();
-    renderManageList();
-  } catch(e) {
-    showToast('连接错误: ' + e.message);
-  }
+function load() {
+  try { menu = JSON.parse(localStorage.getItem(MENU_KEY)) || []; } catch(e) { menu = []; }
+  try { history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch(e) { history = []; }
 }
-
-async function saveMenu() {
-  if (!room) return;
-  await db
-    .from('menus')
-    .upsert({ room: room, data: menu, updated_at: new Date().toISOString() });
-}
-
-async function saveHistory() {
-  if (!room) return;
-  await db
-    .from('history')
-    .insert({ room: room, data: history[history.length - 1] });
-}
+function saveMenu() { localStorage.setItem(MENU_KEY, JSON.stringify(menu)); }
+function saveHistory() { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); }
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -853,31 +791,10 @@ function renderHistory() {
 }
 
 // 初始化
+load();
 renderDishes();
 renderManageList();
 updateCart();
-
-// 房间号输入
-document.getElementById('roomEnter').onclick = async () => {
-  const val = document.getElementById('roomInput').value.trim();
-  if (!val) return;
-  room = val;
-  localStorage.setItem('dinner_room', room);
-  document.getElementById('roomModal').classList.remove('show');
-  await load();
-};
-document.getElementById('roomInput').value = room;
-
-// 切换房间
-document.getElementById('roomBtn').onclick = () => {
-  localStorage.removeItem('dinner_room');
-  location.reload();
-};
-
-// 每3秒自动同步一次
-setInterval(() => {
-  if (room) load();
-}, 3000);
 
 // 检查是否是分享链接
 const params = new URLSearchParams(location.search);
