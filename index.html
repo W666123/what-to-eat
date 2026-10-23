@@ -8,9 +8,11 @@
 <meta http-equiv="Expires" content="0">
 <title>宝宝想吃啥</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
+<script src="https://fastly.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = 'https://mkoeninwppqqjbtjwd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_n24BOiYvRLOgu9Eke6mN5w_mGY-JJua';
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 </script>
 <style>
   :root {
@@ -376,58 +378,39 @@ let room = localStorage.getItem('dinner_room') || '';
 async function load() {
   if (!room) return;
   // 从Supabase拉菜单
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/menus?room=eq.${room}&select=data`, {
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-  });
-  const data = await res.json();
-  if (data.length > 0) {
-    menu = data[0].data || [];
+  const { data: menuData } = await supabase
+    .from('menus')
+    .select('data')
+    .eq('room', room)
+    .single();
+  if (menuData) {
+    menu = menuData.data || [];
   } else {
     menu = [];
   }
   // 从Supabase拉历史
-  const res2 = await fetch(`${SUPABASE_URL}/rest/v1/history?room=eq.${room}&select=data&order=created_at.desc`, {
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-  });
-  const data2 = await res2.json();
-  history = data2.map(h => h.data);
+  const { data: historyData } = await supabase
+    .from('history')
+    .select('data')
+    .eq('room', room)
+    .order('created_at', { ascending: false });
+  history = (historyData || []).map(h => h.data);
   renderDishes();
   renderManageList();
 }
 
 async function saveMenu() {
   if (!room) return;
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/menus?on_conflict=room`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify({ room: room, data: menu, updated_at: new Date().toISOString() })
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      showToast('上传失败: ' + text.substring(0, 50));
-    }
-  } catch(e) {
-    showToast('上传出错: ' + e.message);
-  }
+  await supabase
+    .from('menus')
+    .upsert({ room: room, data: menu, updated_at: new Date().toISOString() });
 }
 
 async function saveHistory() {
   if (!room) return;
-  await fetch(`${SUPABASE_URL}/rest/v1/history`, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ room: room, data: history[history.length - 1] })
-  });
+  await supabase
+    .from('history')
+    .insert({ room: room, data: history[history.length - 1] });
 }
 
 function showToast(msg) {
